@@ -110,6 +110,7 @@ TOMFlowPlot = function(WGCNAlist, networks, toms, genes_to_label, alpha = 0.1, c
 #' @import flashClust
 #' @import WGCNA
 #' @import stringr
+#' @importFrom tidyr pivot_wider
 #' @export
 BuildTOMFlowDF <- function(WGCNAlist, networks, toms, genes_to_label, method = 'average') {
   
@@ -384,13 +385,15 @@ computeOverlapsFromWGCNA <- function(dataset1, dataset2) {
 #'
 #' A plotting function that returns a plot
 #'
-#' @param overlapDf a data.frame resulting from a call to computeOverlapsFromWGCNA
+#' @param WGCNAlist a data.frame resulting from a call to computeOverlapsFromWGCNA
 #' @param comparisonList an object of class WGCNA to compare with dataset2
 #' @param networks an object of class WGCNA to compare with dataset1
 #' @param labels labels to show under each networks
 #' @param alpha alpha value for the node tiles, default is 1
 #' @param x.scale x spacing parameter
 #' @param y.scale y spacing parameter
+#' @param width width of the block
+#' @param height height of the block
 #' @param color.low default is cyan
 #' @param color.high default is magenta
 #' @param color.by color fill for nodes, either 'network', 'trait', or NULL
@@ -403,7 +406,10 @@ computeOverlapsFromWGCNA <- function(dataset1, dataset2) {
 #' @param scale.by.size scale the node height by the size of the module? Default is TRUE.
 #' @param spacer space between the nodes
 #' @param label.y adjust the y coordinate for the network labels, default is 1
-#' @param ... params to GetSignificantOverlap function for thresholds
+#' @param label.size size of the node labels, default is 4
+#' @param base_family font family for ggraph
+#' @param p.adj.threshold adjusted p-value significance threshold for overlap
+#' @param overlap.threshold threshold for number of genes overlapping
 #'
 #' @return Returns a ggalluvial diagram comparing two networks
 #'
@@ -412,6 +418,7 @@ computeOverlapsFromWGCNA <- function(dataset1, dataset2) {
 #' @import ggplot2
 #' @import stringr
 #' @import ggraph
+#' @import igraph
 #' 
 #' @export
 #' 
@@ -439,15 +446,20 @@ ModuleFlowPlot = function(WGCNAlist,
                           my_layout = NULL,
                           use.padj = FALSE,
                           only.contiguous = TRUE,
-                          only.signif = FALSE,
+                          only.signif = TRUE,
                           show.legend = TRUE,
                           scale.by.size = TRUE, 
                           spacer = 10, 
                           label.y = 50,
-                          ...) {
+                          label.size = 4,
+                          base_family = 'Helvetica',
+                          p.adj.threshold = 0.05, 
+                          overlap.threshold = 10) {
   
-  library(igraph)
-  library(ggraph)
+  
+  # Load ggraph 
+  # requireNamespace("ggraph", quietly = TRUE)
+  # ggraph::ggraph() # trigger namespace load and register guides
   
   # subset to modules
   stopifnot(all(networks %in% names(WGCNAlist)))
@@ -479,9 +491,6 @@ ModuleFlowPlot = function(WGCNAlist,
       filteredOverlapList=filteredOverlapList[!filteredOverlapList$mod2 %in% WGCNA@outlierModules,]
     }
   }
-  
-  # Significant only
-  if(only.signif) filteredOverlapList = GetSignificantOverlap(filteredOverlapList, ...)
 
   # Track modules
   admittedModules=unique(c(filteredOverlapList$mod1, filteredOverlapList$mod2))
@@ -500,8 +509,9 @@ ModuleFlowPlot = function(WGCNAlist,
   V(graph)$network=str_split_fixed(V(graph)$name, "_", 2)[,1]
   # conditions=unique(V(graph)$network)
   
+  # browser()
+  
   # Module names
-
   color.by = match.arg(color.by)
   if(color.by == 'network') {
     V(graph)$color = V(graph)$network
@@ -520,6 +530,8 @@ ModuleFlowPlot = function(WGCNAlist,
     palette = col
   }
   
+  # browser()
+  
   # Colors of modules by condition
   # if(is.null(col)) palette = colors(length(conditions), random = TRUE)
   
@@ -531,12 +543,14 @@ ModuleFlowPlot = function(WGCNAlist,
     t(t(table(network@datExpr$dynamicLabels)))
   })
   module.size.df = do.call(rbind, mod.size.list)
-  V(graph)$n.genes = module.size.df[V(graph)$name,]#rescale(module.size.df[V(graph)$name,], to = c(0,1))
+  V(graph)$n.genes = module.size.df[V(graph)$name,] #rescale(module.size.df[V(graph)$name,], to = c(0,1))
   # print(V(graph)$n.genes) 
+  
+  # browser()
   
   # edge attributes
   if(use.padj) {
-    E(graph)$weight=-log10(E(graph)$p.adj)
+    E(graph)$weight = -log10(E(graph)$p.adj)
   } else {
     E(graph)$weight=E(graph)$overlap
   }
@@ -545,6 +559,15 @@ ModuleFlowPlot = function(WGCNAlist,
   ecol=lapply(ealpha, function(x) rgb(1, 0, 0, x))
   E(graph)$color=unlist(ecol)
   E(graph)$alpha = ealpha
+  
+  # browser()
+  # Significant only
+  if(only.signif) {
+    edges_remove = which(filteredOverlapList$p.adj > p.adj.threshold | filteredOverlapList$overlap < overlap.threshold) #GetSignificantOverlap(filteredOverlapList, ...)
+    graph <- delete.edges(graph, edges_remove)
+  }
+  
+  # browser()
   
   # Layout
   if(is.null(my_layout)){
@@ -574,134 +597,25 @@ ModuleFlowPlot = function(WGCNAlist,
     text = networks
   )
   
-  # print(palette)
-  ggraph(graph, layout = my_layout) + 
+  # browser()
+  ggraph::ggraph(graph, layout = my_layout) + 
     # geom_edge_bend(aes(alpha = -log10(p.adj), width = overlap, color = -log10(p.adj)), strength = 0.5) +
-    geom_edge_link(aes(alpha = -log10(p.adj), width = overlap, color = -log10(p.adj))) +
+    ggraph::geom_edge_link(aes(alpha = -log10(p.adj), width = overlap, color = -log10(p.adj))) +
     # geom_node_label(aes(label = name), 
     #                 label.padding = unit(0.2, "lines"), # controls rectangle size
     #                 label.r = unit(0, "lines"),         # removes rounded corners
     #                 fill = "white") +
-    {if(scale.by.size) geom_node_tile(aes(width = 1, height = n.genes, fill = color), alpha = alpha, color = 'black')}+
-    {if(!scale.by.size) geom_node_tile(aes(width = width, height = height, fill = color), alpha = alpha, color = 'black')}+
+    {if(scale.by.size) ggraph::geom_node_tile(aes(width = 1, height = n.genes, fill = color), alpha = alpha, color = 'black')}+
+    {if(!scale.by.size) ggraph::geom_node_tile(aes(width = width, height = height, fill = color), alpha = alpha, color = 'black')}+
     # {if(!is.null(color.by)) geom_node_tile(aes(width = width, height = height, fill = color), alpha = alpha, color = 'black')}+
     scale_fill_manual(values = palette)+
-    geom_node_text(aes(label = name_clean), vjust = 0.5) +
-    scale_edge_width(range = c(0.5, 4)) +  # control min/max line thickness
-    scale_edge_color_gradient(low=color.low, high=color.high)+
+    ggraph::geom_node_text(aes(label = name_clean), vjust = 0.5, size = label.size) +
+    ggraph::scale_edge_width(range = c(0.5, 4)) +  # control min/max line thickness
+    ggraph::scale_edge_color_gradient(low=color.low, high=color.high, guide = ggraph::guide_edge_colourbar())+
     geom_text(data = labels_df, aes(x = x, y = y, label = text),
               inherit.aes = FALSE, color = "black")+
     coord_cartesian(clip = 'off')+
-    theme_graph()
-}
-
-ModuleFlowPlotOld = function(overlap.list, networks, labels = NULL, alpha = 0.1, width = 0.05, color = "black") {
-  
-  # Equal the number of networks
-  network_count <- length(networks)
-  
-  # Set labels to automatic labels if not specified
-  if(is.null(labels)) labels = paste0("Network ", 1:network_count)
-  
-  if(network_count < 2) {
-    stop("At least 2 networks are needed for drawing a Sankey plot.")
-  }
-  if(network_count > 5) {
-    stop("Currently only 2-5 networks are supported.")
-  }
-  
-  # Build basic df
-  # df_columns <- c(networks, orders, colors, "module", "Count")
-  # df <- TOMDF[, df_columns]
-
-  library(ggforce)
-  
-  full.overlaps = do.call(rbind, overlap.list)
-  comparisons = lapply(seq_len(length(networks)-1), function(x) x[c(1,2)])
-  MappingTable = do.call(rbind, lapply(seq_along(comparisons), function(x){
-    subset(full.overlaps, Mod1 == comparisons[[1]] & Mod2 == comparisons[[2]])
-  }))
-  
-  MappingTable = gather_set_data(MappingTable, 1:2)
-  
-  # print((MappingTable))
-  MappingTable$names = factor(str_split_fixed(MappingTable$y, '_', 2)[,2], levels = names(pr_palette))
-  
-  # Color nodes
-  colors <- rep(pr_palette, 6)
-  names(colors) = c(paste0(species1, '_', names(pr_palette)), 
-                    paste0(species2, '_', names(pr_palette)), 
-                    paste0(species3, '_', names(pr_palette)), 
-                    paste0(species4, '_', names(pr_palette)), 
-                    paste0(species5, '_', names(pr_palette)), 
-                    paste0(species6, '_', names(pr_palette)))
-  # print(colors)
-  MappingTable = MappingTable[MappingTable$value > min.value,]
-  
-  # Plot
-  sn = ggplot(MappingTable, aes(x, id = id, split = names, value = value)) +
-    geom_parallel_sets(axis.width = axis.width, fill = 'grey', alpha = 0.4) +
-    geom_parallel_sets_axes(aes(fill = y), axis.width = axis.width, color = "black") +
-    geom_parallel_sets_labels(colour = 'black',
-                              angle = 0
-                              # hjust = c(rep(1, length(unique(MappingTable$Var1))), rep(0, length(unique(MappingTable$Var2)))),
-                              # nudge_x = c(rep(-0.08, length(unique(MappingTable$Var1))), rep(0.08, length(unique(MappingTable$Var2))))
-    ) +
-    scale_fill_manual(values = colors) +
-    theme_void() +
-    NoLegend() +
-    scale_x_discrete(expand = expansion(add = 0.5))
-  
-  # Combine the df
-  # new_df <- do.call(rbind, new_dfs)
-  # 
-  # # Set colors
-  # all_node_colors <- list()
-  # for (i in seq_along(networks)) {
-  #   sorted_df <- df[order(df[[orders[i]]]), ]
-  #   all_node_colors[[i]] <- rev(sorted_df[[colors[i]]])
-  # }
-  # 
-  # # combine colors
-  # node_colors <- unlist(all_node_colors)
-  # 
-  # # Build plot
-  # plt <- ggplot(new_df)
-  # 
-  # if (network_count == 2) {
-  #   plt <- plt + aes(y = Count, axis1 = !!sym(networks[1]), axis2 = !!sym(networks[2]))
-  # } else if (network_count == 3) {
-  #   plt <- plt + aes(y = Count, axis1 = !!sym(networks[1]), axis2 = !!sym(networks[2]), 
-  #                    axis3 = !!sym(networks[3]))
-  # } else if (network_count == 4) {
-  #   plt <- plt + aes(y = Count, axis1 = !!sym(networks[1]), axis2 = !!sym(networks[2]), 
-  #                    axis3 = !!sym(networks[3]), axis4 = !!sym(networks[4]))
-  # } else if (network_count >= 5) {
-  #   plt <- plt + aes(y = Count, axis1 = !!sym(networks[1]), axis2 = !!sym(networks[2]), 
-  #                    axis3 = !!sym(networks[3]), axis4 = !!sym(networks[4]), 
-  #                    axis5 = !!sym(networks[5]))
-  # }
-  # 
-  # # Nodes & flows
-  # plt <- plt +
-  #   geom_flow(aes(fill = module), width = width, curve_type = "cubic", alpha = alpha, fill = color) +
-  #   geom_stratum(width = width, fill = node_colors, size = 0, alpha = 1) +
-  #   ylab("Genes") +
-  #   theme(
-  #     axis.ticks.x = element_blank(),
-  #     panel.background = element_blank(),
-  #     panel.grid.major = element_blank(),
-  #     panel.grid.minor = element_blank()
-  #   ) +
-  #   geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 0) +
-  #   scale_y_continuous(limits = c(0, nrow(df))) +
-  #   scale_x_discrete(
-  #     expand = expansion(mult = c(0, 0.05)),
-  #     limits = paste0("Network ", 1:network_count),
-  #     labels = labels,
-  #   )
-  
-  return(plt)
+    ggraph::theme_graph(base_family = base_family)
 }
 
 #' Module comparison plot
@@ -783,15 +697,28 @@ moduleComparisonPlot <- function(overlapDf, dataset1, dataset2) {
 	return(plot)
 }
 
+#' Get significant overlap
+#'
+#' A function that subsets an overlap comaprisons data.frame. 
+#'
+#' @param df a data.frame resulting from a call to computeOverlapsFromWGCNA
+#' @param p.adj.threshold an object of class WGCNA to compare with dataset2
+#' @param overlap.threshold an object of class WGCNA to compare with dataset1
+#'
+#' @return Returns a data.frame with significant overlaps
+#'
+#' @author Dario Tommasini
+#' 
+#' @export
 GetSignificantOverlap = function(df, p.adj.threshold = 0.05, overlap.threshold = 10){
   subset(df, p.adj < p.adj.threshold & overlap > overlap.threshold)
 }
 
 
-
 #' Module sankey diagram
 #'
-#' A plotting function that returns a plot
+#' A plotting function that returns a sankey plot comparing two networks. 
+#' This is a deprecated function, please use ModuleFlowPlot instead.  
 #'
 #' @param overlapDf a data.frame resulting from a call to computeOverlapsFromWGCNA
 #' @param dataset1 an object of class WGCNA to compare with dataset2
@@ -1059,7 +986,8 @@ moduleToModuleHeatmap <- function(comparisonDf, dataset1=NULL, dataset2=NULL, tr
 #'
 #' @import ggplot2
 #' @import stringr
-#' @import dplyr
+#' @importFrom magrittr %>%
+#' @importFrom dplyr arrange
 #' @export
 #' 
 #' @examples

@@ -16,7 +16,6 @@
 #' @import ggplot2
 #' @import patchwork
 #' @import WGCNA
-#' @import dplyr
 #' @export
 #' 
 #' @examples
@@ -216,7 +215,8 @@ runDME <- function(WGCNAobject, design, alphaLevel=0.05, testCondition=NULL, ref
 #' @import patchwork
 #' @import ggplot2
 #' @import WGCNA
-#' @import dplyr
+#' @importFrom magrittr %>%
+#' @importFrom dplyr arrange
 #' @export
 #' 
 #' @examples

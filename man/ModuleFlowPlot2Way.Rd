@@ -33,7 +33,8 @@ ModuleFlowPlot2Way(
 Returns a ggalluvial diagram comparing two networks
 }
 \description{
-A plotting function that returns a plot
+A plotting function that returns a sankey plot comparing two networks. 
+This is a deprecated function, please use ModuleFlowPlot instead.
 }
 \examples{
 library(ExperimentHub)

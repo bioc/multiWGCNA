@@ -21,15 +21,20 @@ ModuleFlowPlot(
   my_layout = NULL,
   use.padj = FALSE,
   only.contiguous = TRUE,
-  only.signif = FALSE,
+  only.signif = TRUE,
   show.legend = TRUE,
   scale.by.size = TRUE,
   spacer = 10,
   label.y = 50,
-  ...
+  label.size = 4,
+  base_family = "Helvetica",
+  p.adj.threshold = 0.05,
+  overlap.threshold = 10
 )
 }
 \arguments{
+\item{WGCNAlist}{a data.frame resulting from a call to computeOverlapsFromWGCNA}
+
 \item{comparisonList}{an object of class WGCNA to compare with dataset2}
 
 \item{networks}{an object of class WGCNA to compare with dataset1}
@@ -41,6 +46,10 @@ ModuleFlowPlot(
 \item{x.scale}{x spacing parameter}
 
 \item{y.scale}{y spacing parameter}
+
+\item{width}{width of the block}
+
+\item{height}{height of the block}
 
 \item{color.by}{color fill for nodes, either 'network', 'trait', or NULL}
 
@@ -66,9 +75,13 @@ ModuleFlowPlot(
 
 \item{label.y}{adjust the y coordinate for the network labels, default is 1}
 
-\item{...}{params to GetSignificantOverlap function for thresholds}
+\item{label.size}{size of the node labels, default is 4}
 
-\item{overlapDf}{a data.frame resulting from a call to computeOverlapsFromWGCNA}
+\item{base_family}{font family for ggraph}
+
+\item{p.adj.threshold}{adjusted p-value significance threshold for overlap}
+
+\item{overlap.threshold}{threshold for number of genes overlapping}
 }
 \value{
 Returns a ggalluvial diagram comparing two networks

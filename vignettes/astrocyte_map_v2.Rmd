@@ -92,13 +92,17 @@ head(results$overlaps$EAE_vs_WT$overlap)
 
 To compare module overlap across networks, one could use the ModuleFlowPlot function: 
 
-```{r}
-ModuleFlowPlot(astrocyte_networks,
-               results$overlaps, c('combined',  'EAE', 'WT', 'Sc', 'Hippo'),
-               y.scale = 15,
-               x.scale = 2,
-               only.signif = TRUE,
-               color.by = 'trait')
+```{r, fig.height=10, fig.width=7}
+ModuleFlowPlot(WGCNAlist = astrocyte_networks, 
+              comparisonList = results$overlaps, 
+              networks = c('combined',  'EAE', 'WT'), 
+              spacer = 100, # size of spacer
+              label.y = 500, # vertical adjustment for the network labels
+              x.scale = 10, # how much to spread out the nodes along x-axis
+              color.by = 'trait', # color nodes by their best trait correlation
+              col = c(Cbl = 'lightpink', Ctx = 'chartreuse', Hippo = 'skyblue', Sc = 'orange', EAE = 'red', None = 'grey'), 
+              p.adj.threshold = 1e-50, 
+              label.size = 4)
 ```
 
 # Identify a module of interest

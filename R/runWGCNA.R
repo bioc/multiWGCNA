@@ -73,13 +73,14 @@ findBestTrait <- function(WGCNAobject, alphaLevel=0.05, p.adjust=FALSE, write=FA
     traitTable$log10Pvalue = NA
     traitTable$Module = gsub("ME", "", traitTable$Module)
   } else {
-    group=apply(traitTable[,which(startsWith(colnames(traitTable),"p.value"))], 1, which.min)
-    traitTable$trait=gsub("p.value.", "", colnames(traitTable)[which(startsWith(colnames(traitTable), "p.value"))])[group]
-    bestPvalues=apply(traitTable[,which(startsWith(colnames(traitTable),"p.value"))], 1, function(x) x[[which.min(x)]])
+    pval_df = traitTable[,which(startsWith(colnames(traitTable),"p.value")),drop = FALSE]
+    group=apply(pval_df, 1, which.min)
+    traitTable$trait=gsub("p.value.", "", colnames(pval_df))[group]
+    bestPvalues=apply(pval_df, 1, function(x) x[[which.min(x)]])
     bestPvalues=as.numeric(bestPvalues)
     traitTable$log10Pvalue= -log10(bestPvalues)
-    traitTable$trait[traitTable$log10Pvalue<(-log10(as.numeric(alphaLevel)))]="None"
-    traitTable$Module=gsub("ME", "", traitTable$Module)
+    traitTable$trait[traitTable$log10Pvalue < (-log10(as.numeric(alphaLevel)))]="None"
+    # traitTable$Module=gsub("ME", "", traitTable$Module) # Edit on 11/25/2025: this line no longer seems necessary
   }
   
   WGCNAobject@trait=traitTable
@@ -92,7 +93,18 @@ traitCor <- function(WGCNAobject, write=FALSE){
 	traitData=WGCNAobject@conditions
   identifier=name(WGCNAobject)
 	nSamples=nrow(datExpr2)
-	Traits=traitData[match(rownames(datExpr2), traitData$Sample),-1]
+	if(any(is.na(match(rownames(datExpr2), traitData$Sample)))){
+	  stop(
+	    "Could not match sample names between `datExpr` and `sampleTable`.\n\n",
+	    "Some sample names in `datExpr`:\n",
+	    paste0("  - ", head(rownames(datExpr2)), collapse = "\n"), "\n\n",
+	    "Some sample names in `sampleTable`:\n",
+	    paste0("  - ", head(traitData$Sample), collapse = "\n"), "\n\n",
+	    "Note: In R, dashes (`-`) in column names are automatically converted to periods (`.`).\n",
+	    "Please ensure the sample names match after this conversion."
+	  )
+	}
+	Traits=traitData[match(rownames(datExpr2), traitData$Sample), -1, drop = FALSE]
   rownames(Traits)=traitData[match(rownames(datExpr2), traitData$Sample),c("Sample")]
   datTraits=as.data.frame(Traits)
   moduleTraitCorL = cor(moduleEigengenes, datTraits, use = "p");
@@ -141,6 +153,7 @@ plotModules <- function(WGCNAobject, mode="PC1"){
 #' @param write write results out to files? 
 #' @param alphaLevel significance value passed to findBestTrait function, default is 0.05 
 #' @param plot plot modules? Default is false
+#' @param detectNumbers passed to makeTraitTable2; if you have any numeric traits, make sure this is TRUE so that these get detected. 
 #' @param ... Arguments to pass to blockwiseModules function 
 #'
 #' @return A list of WGCNA objects, ie level one, two, and three networks. 
@@ -172,7 +185,7 @@ plotModules <- function(WGCNAobject, mode="PC1"){
 #'   deepSplit = 4, verbose = 3)
 #' autism_networks[["combined"]]
 #' 
-constructNetworks <- function(datExpr, sampleTable, conditions1, conditions2, write=FALSE, alphaLevel=0.05, plot=FALSE, ...){
+constructNetworks <- function(datExpr, sampleTable, conditions1, conditions2, write=FALSE, alphaLevel=0.05, plot=FALSE, detectNumbers = TRUE, ...){
 
   # Check input data format
   stopifnot(inherits(datExpr, "SummarizedExperiment") | inherits(datExpr, "data.frame"))
@@ -185,8 +198,9 @@ constructNetworks <- function(datExpr, sampleTable, conditions1, conditions2, wr
     datExpr = data.frame(X = rownames(datExpr), datExpr)
   }
   
-	conditions1TraitTable=makeTraitTable(sampleTable, 3) #subset by conditions1, resolve conditions2
-	conditions2TraitTable=makeTraitTable(sampleTable, 2) #subset by conditions2, resolve conditions1
+  # Make trait tables
+	conditions1TraitTable=makeTraitTable2(sampleTable, 3, detectNumbers = detectNumbers) #subset by conditions1, resolve conditions2
+	conditions2TraitTable=makeTraitTable2(sampleTable, 2, detectNumbers = detectNumbers) #subset by conditions2, resolve conditions1
 	combinedTraitTable=cbind(conditions1TraitTable, conditions2TraitTable[,-1])
 
 	myNetworks=list()

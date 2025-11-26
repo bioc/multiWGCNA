@@ -1,7 +1,7 @@
 Package: multiWGCNA
 Type: Package
 Title: multiWGCNA
-Version: 1.7.2
+Version: 1.9.1
 Authors@R: c(
     person("Dario", "Tommasini", email="dtommasini0@gmail.com",
       role = c("aut","cre"),
@@ -33,6 +33,7 @@ Imports:
     stringr,
     readr,
     WGCNA,
+    magrittr,
     dplyr,
     reshape2,
     data.table,
@@ -45,7 +46,9 @@ Imports:
     cowplot,
     ggrepel,
     methods,
-    SummarizedExperiment
+    SummarizedExperiment,
+    ggraph,
+    tidyr
 Depends:
     R (>= 4.3.0),
     ggalluvial

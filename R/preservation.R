@@ -513,18 +513,19 @@ diffCoexpression <- function(datExpr, conditions, geneList=NULL, plot=FALSE,
 #' astrocyte_se = eh_query[["EH8223"]] 
 #' sampleTable = colData(astrocyte_se)
 #' results = list()
-#' results$permutation.test = PreservationPermutationTest(astrocyte_networks$combined@datExpr[sample(17000,3000),], 
-#'                                                        sampleTable, 
-#'                                                        constructNetworksIn = "EAE", # Construct networks using EAE samples
-#'                                                        testPreservationIn = "WT", # Test preservation of disease samples in WT samples
-#'                                                        nPermutations = 10, # Number of permutations for permutation test
-#'                                                        nPresPermutations = 10, # Number of permutations for modulePreservation function
-#'                                                        networkType = "signed", TOMType = "unsigned", 
-#'                                                        power = 12, minModuleSize = 100, maxBlockSize = 25000,
-#'                                                        reassignThreshold = 0, minKMEtoStay = 0, mergeCutHeight = 0,
-#'                                                        numericLabels = TRUE, pamRespectsDendro = FALSE, 
-#'                                                        deepSplit = 4, verbose = 3
-#'                                                        )
+#' results$permutation.test = PreservationPermutationTest(
+#' astrocyte_networks$combined@datExpr[sample(17000,3000),], 
+#' sampleTable, 
+#' constructNetworksIn = "EAE", # Construct networks using EAE samples
+#' testPreservationIn = "WT", # Test preservation of disease samples in WT 
+#' nPermutations = 10, # Number of permutations for permutation test
+#' nPresPermutations = 10, # Number of permutations for modulePreservation
+#' networkType = "signed", TOMType = "unsigned", 
+#' power = 12, minModuleSize = 100, maxBlockSize = 25000,
+#' reassignThreshold = 0, minKMEtoStay = 0, mergeCutHeight = 0,
+#' numericLabels = TRUE, pamRespectsDendro = FALSE, 
+#' deepSplit = 4, verbose = 3
+#' )
 #' }
 PreservationPermutationTest = function(referenceDatExpr, 
                                        design, 
@@ -618,11 +619,13 @@ PreservationPermutationTest = function(referenceDatExpr,
 #' 
 #' @examples
 #' # Remove outlier modules
-#' permutationTestResultsFiltered = lapply(permutationTestResults, function(x) x[!x$is.outlier.module,])
+#' permutationTestResultsFiltered = lapply(permutationTestResults, function(x) 
+#' x[!x$is.outlier.module,])
 #' 
 #' # Find preservation score distribution for a given module size
-#' scores.summary = PreservationScoreDistribution(permutationTestResultsFiltered, 
-#'                                                moduleOfInterestSize = 303)
+#' scores.summary = PreservationScoreDistribution(
+#' permutationTestResultsFiltered, 
+#' moduleOfInterestSize = 303)
 #'                                                         
 PreservationScoreDistribution = function(preservationData, moduleOfInterestSize){
   

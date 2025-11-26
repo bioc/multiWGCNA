@@ -94,7 +94,8 @@ colors <- function(nColors, random=FALSE){
 #'
 #' @return a character vector of the genes/probes in the module
 #' 
-#' @import dplyr
+#' @importFrom magrittr %>%
+#' @importFrom dplyr arrange
 #' @export
 #' 
 #' @examples 
@@ -143,9 +144,55 @@ removeOutlierModules <- function(WGCNAobject, outlierModules=NULL){
 	WGCNAobject
 }
 
+#' Generate a trait table from a sample table (version 2)
+#' 
+#' Generates a WGCNA-compatible trait table from a sampleTable dataframe. 
+#' 
+#' @param inputTable the sampleTable data.frame
+#' @param column the column from the sampleTable to use as traits
+#' @param detectNumbers whether to consider traits with numbers as numerical rather than categorical variables
+#' 
+#' @return a data.frame with integer values denoting the categorical sample traits
+#' 
+#' @export
+#' 
+#' @examples 
+#' sampleTable = data.frame(Sample = c(paste0("EAE", 1:10), paste0("WT", 1:10)), 
+#'                          Disease = c(rep("EAE", 10), rep("WT", 10)), 
+#'                          Region = c(rep(c("Cbl", "Sc"), 5))) 
+#' makeTraitTable2(sampleTable, 2)
+#' 
+makeTraitTable2 <- function(inputTable, column, detectNumbers=TRUE) {
+  
+  # Check whether column is numeric or categorical
+  column_data = inputTable[,column,drop = FALSE]
+  if(is.numeric(column_data[,1]) & detectNumbers){
+    
+    # Keep as is
+    mm = column_data
+    
+  } else {
+    
+    # Convert character columns to factor so model.matrix works properly
+    column_data[,1] = factor(column_data[,1])
+    
+    # One-hot encoding
+    mm <- model.matrix(~ . - 1, data = column_data)  # -1 removes intercept
+    
+    # Remove the prefix
+    colnames(mm) = gsub(colnames(column_data)[[1]], '', colnames(mm))
+  }
+  
+  # Make data frame with sample 
+  out <- as.data.frame(cbind(Sample = inputTable$Sample, mm))
+  
+  return(out)
+}
+
 #' Generate a trait table from a sample table
 #' 
-#' Generates a WGCNA-compatible trait table from a sampleTable dataframe
+#' Generates a WGCNA-compatible trait table from a sampleTable dataframe. This 
+#' function is deprecated. Use makeTraitTable2 instead. 
 #' 
 #' @param inputTable the sampleTable data.frame
 #' @param column the column from the sampleTable to use as traits
@@ -185,6 +232,8 @@ makeTraitTable <- function(inputTable, column, detectNumbers=FALSE) {
                 traitTable=t(do.call(rbind,traitTable))
                 colnames(traitTable)=c("Sample", c(traits))
 	}
+	
+	# Unlist
 	traitTable=as.data.frame(apply(traitTable, 2, unlist))
 	traitTable
 }

@@ -12,6 +12,7 @@ constructNetworks(
   write = FALSE,
   alphaLevel = 0.05,
   plot = FALSE,
+  detectNumbers = TRUE,
   ...
 )
 }
@@ -29,6 +30,8 @@ constructNetworks(
 \item{alphaLevel}{significance value passed to findBestTrait function, default is 0.05}
 
 \item{plot}{plot modules? Default is false}
+
+\item{detectNumbers}{passed to makeTraitTable2; if you have any numeric traits, make sure this is TRUE so that these get detected.}
 
 \item{...}{Arguments to pass to blockwiseModules function}
 }
