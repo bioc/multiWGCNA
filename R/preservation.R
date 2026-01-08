@@ -423,6 +423,7 @@ correlationComparisonHeatmaps <- function(diseaseDatExpr, healthyDatExpr, geneLi
 #' @export
 #' 
 #' @examples
+#' \donttest{
 #' library(ExperimentHub)
 #' eh = ExperimentHub()
 #' eh_query = query(eh, c("multiWGCNAdata"))
@@ -430,7 +431,9 @@ correlationComparisonHeatmaps <- function(diseaseDatExpr, healthyDatExpr, geneLi
 #' datExpr = assays(astrocyte_se)[[1]]
 #' diffCoexpression(datExpr, c(rep(1,20), rep(2,16)), 
 #'   geneList = c("Gfap", "Vim", "Aspg", "Serpina3n", "Cp", "Osmr", "Cd44", 
-#'     "Cxcl10", "Hspb1", "Timp1", "S1pr3", "Steap4", "Lcn2"))
+#'                "Cxcl10", "Hspb1", "Timp1", "S1pr3", "Steap4", "Lcn2"))
+#' }
+#'     
 #' 
 diffCoexpression <- function(datExpr, conditions, geneList=NULL, plot=FALSE, 
                              method=c("pearson", "spearman"), removeFreeNodes=TRUE, 

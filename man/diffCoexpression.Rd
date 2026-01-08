@@ -62,6 +62,7 @@ Performs a differential co-expression ananlysis given an expression data.frame
 and a conditions vector
 }
 \examples{
+\donttest{
 library(ExperimentHub)
 eh = ExperimentHub()
 eh_query = query(eh, c("multiWGCNAdata"))
@@ -69,7 +70,9 @@ astrocyte_se = eh_query[["EH8223"]]
 datExpr = assays(astrocyte_se)[[1]]
 diffCoexpression(datExpr, c(rep(1,20), rep(2,16)), 
   geneList = c("Gfap", "Vim", "Aspg", "Serpina3n", "Cp", "Osmr", "Cd44", 
-    "Cxcl10", "Hspb1", "Timp1", "S1pr3", "Steap4", "Lcn2"))
+               "Cxcl10", "Hspb1", "Timp1", "S1pr3", "Steap4", "Lcn2"))
+}
+    
 
 }
 \author{
